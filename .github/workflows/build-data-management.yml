@@ -11,25 +11,25 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    # ---------------- CHECKOUT ----------------
+    # ================= CHECKOUT =================
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # ---------------- RESTORE ----------------
+    # ================= RESTORE =================
     - name: Restore Backend
       run: dotnet restore Backend.Api/Backend.Api.csproj
 
     - name: Restore Frontend
       run: dotnet restore Frontend.Web/Frontend.Web.csproj
 
-    # ---------------- BUILD ----------------
+    # ================= BUILD =================
     - name: Build Backend
       run: dotnet build Backend.Api/Backend.Api.csproj -c Release --no-restore
 
     - name: Build Frontend
       run: dotnet build Frontend.Web/Frontend.Web.csproj -c Release --no-restore
 
-    # ---------------- ENSURE FOLDERS ----------------
+    # ================= ENSURE FOLDERS =================
     - name: Ensure deployment folders exist
       shell: powershell
       run: |
@@ -40,20 +40,30 @@ jobs:
     - name: Stop Backend (port 5000)
       shell: powershell
       run: |
-        $conn = netstat -ano | findstr :5000
-        if ($conn) {
-          $processId = ($conn -split '\s+')[-1]
-          Write-Host "Stopping backend processId=$processId"
-          taskkill /PID $processId /F
+        $conns = netstat -ano | findstr :5000
+        if ($conns) {
+          $pids = $conns | ForEach-Object { ($_ -split '\s+')[-1] } | Sort-Object -Unique
+          foreach ($processId in $pids) {
+            Write-Host "Stopping backend PID=$processId"
+            taskkill /PID $processId /F
+          }
         } else {
           Write-Host "Backend not running"
         }
 
+        $timeout = 10
+        while ((netstat -ano | findstr :5000) -and $timeout -gt 0) {
+          Write-Host "Waiting for port 5000 to be released..."
+          Start-Sleep -Seconds 1
+          $timeout--
+        }
 
     - name: Copy Backend DLLs
       shell: powershell
       run: |
-        Copy-Item Backend.Api\bin\Release\net8.0\* C:\apps\data-management\backend -Recurse -Force
+        Copy-Item Backend.Api\bin\Release\net8.0\* `
+          C:\apps\data-management\backend `
+          -Recurse -Force
 
     - name: Start Backend
       shell: powershell
@@ -65,20 +75,30 @@ jobs:
     - name: Stop Frontend (port 5001)
       shell: powershell
       run: |
-        $conn = netstat -ano | findstr :5001
-        if ($conn) {
-          $processId = ($conn -split '\s+')[-1]
-          Write-Host "Stopping frontend processId=$processId"
-          taskkill /PID $processId /F
+        $conns = netstat -ano | findstr :5001
+        if ($conns) {
+          $pids = $conns | ForEach-Object { ($_ -split '\s+')[-1] } | Sort-Object -Unique
+          foreach ($processId in $pids) {
+            Write-Host "Stopping frontend PID=$processId"
+            taskkill /PID $processId /F
+          }
         } else {
           Write-Host "Frontend not running"
         }
 
+        $timeout = 10
+        while ((netstat -ano | findstr :5001) -and $timeout -gt 0) {
+          Write-Host "Waiting for port 5001 to be released..."
+          Start-Sleep -Seconds 1
+          $timeout--
+        }
 
     - name: Copy Frontend DLLs
       shell: powershell
       run: |
-        Copy-Item Frontend.Web\bin\Release\net8.0\* C:\apps\data-management\frontend -Recurse -Force
+        Copy-Item Frontend.Web\bin\Release\net8.0\* `
+          C:\apps\data-management\frontend `
+          -Recurse -Force
 
     - name: Start Frontend
       shell: powershell
