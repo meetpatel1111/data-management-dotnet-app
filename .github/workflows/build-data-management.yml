@@ -13,30 +13,67 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    # ---------------- RESTORE ----------------
     - name: Restore Backend
       run: dotnet restore Backend.Api/Backend.Api.csproj
 
     - name: Restore Frontend
       run: dotnet restore Frontend.Web/Frontend.Web.csproj
 
+    # ---------------- BUILD ----------------
     - name: Build Backend
       run: dotnet build Backend.Api/Backend.Api.csproj -c Release
 
     - name: Build Frontend
       run: dotnet build Frontend.Web/Frontend.Web.csproj -c Release
 
+    # ---------------- ENSURE FOLDERS ----------------
     - name: Ensure deployment folders exist
       shell: powershell
       run: |
         New-Item -ItemType Directory -Path C:\apps\data-management\backend -Force
         New-Item -ItemType Directory -Path C:\apps\data-management\frontend -Force
 
+    # ---------------- BACKEND DEPLOY ----------------
+    - name: Stop Backend if running
+      shell: powershell
+      run: |
+        $p = Get-Process dotnet -ErrorAction SilentlyContinue | Where-Object {
+          $_.Path -like "*Backend.Api.dll*"
+        }
+        if ($p) {
+          Write-Host "Stopping Backend..."
+          $p | Stop-Process -Force
+        }
+
     - name: Copy Backend DLLs
       shell: powershell
       run: |
         Copy-Item Backend.Api\bin\Release\net8.0\* C:\apps\data-management\backend -Recurse -Force
 
+    - name: Start Backend
+      shell: powershell
+      run: |
+        Start-Process "dotnet" "C:\apps\data-management\backend\Backend.Api.dll --urls=http://localhost:5000"
+
+    # ---------------- FRONTEND DEPLOY ----------------
+    - name: Stop Frontend if running
+      shell: powershell
+      run: |
+        $p = Get-Process dotnet -ErrorAction SilentlyContinue | Where-Object {
+          $_.Path -like "*Frontend.Web.dll*"
+        }
+        if ($p) {
+          Write-Host "Stopping Frontend..."
+          $p | Stop-Process -Force
+        }
+
     - name: Copy Frontend DLLs
       shell: powershell
       run: |
         Copy-Item Frontend.Web\bin\Release\net8.0\* C:\apps\data-management\frontend -Recurse -Force
+
+    - name: Start Frontend
+      shell: powershell
+      run: |
+        Start-Process "dotnet" "C:\apps\data-management\frontend\Frontend.Web.dll --urls=http://localhost:5001"
