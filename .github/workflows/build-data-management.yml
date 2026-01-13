@@ -11,7 +11,9 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - uses: actions/checkout@v3
+    # ---------------- CHECKOUT ----------------
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
     # ---------------- RESTORE ----------------
     - name: Restore Backend
@@ -22,10 +24,10 @@ jobs:
 
     # ---------------- BUILD ----------------
     - name: Build Backend
-      run: dotnet build Backend.Api/Backend.Api.csproj -c Release
+      run: dotnet build Backend.Api/Backend.Api.csproj -c Release --no-restore
 
     - name: Build Frontend
-      run: dotnet build Frontend.Web/Frontend.Web.csproj -c Release
+      run: dotnet build Frontend.Web/Frontend.Web.csproj -c Release --no-restore
 
     # ---------------- ENSURE FOLDERS ----------------
     - name: Ensure deployment folders exist
@@ -34,16 +36,17 @@ jobs:
         New-Item -ItemType Directory -Path C:\apps\data-management\backend -Force
         New-Item -ItemType Directory -Path C:\apps\data-management\frontend -Force
 
-    # ---------------- BACKEND DEPLOY ----------------
-    - name: Stop Backend if running
+    # ================= BACKEND DEPLOY =================
+    - name: Stop Backend (port 5000)
       shell: powershell
       run: |
-        $p = Get-Process dotnet -ErrorAction SilentlyContinue | Where-Object {
-          $_.Path -like "*Backend.Api.dll*"
-        }
-        if ($p) {
-          Write-Host "Stopping Backend..."
-          $p | Stop-Process -Force
+        $conn = netstat -ano | findstr :5000
+        if ($conn) {
+          $pid = ($conn -split '\s+')[-1]
+          Write-Host "Stopping backend PID=$pid"
+          taskkill /PID $pid /F
+        } else {
+          Write-Host "Backend not running"
         }
 
     - name: Copy Backend DLLs
@@ -54,18 +57,20 @@ jobs:
     - name: Start Backend
       shell: powershell
       run: |
-        Start-Process "dotnet" "C:\apps\data-management\backend\Backend.Api.dll --urls=http://localhost:5000"
+        Start-Process "dotnet" `
+          "C:\apps\data-management\backend\Backend.Api.dll --urls=http://localhost:5000"
 
-    # ---------------- FRONTEND DEPLOY ----------------
-    - name: Stop Frontend if running
+    # ================= FRONTEND DEPLOY =================
+    - name: Stop Frontend (port 5001)
       shell: powershell
       run: |
-        $p = Get-Process dotnet -ErrorAction SilentlyContinue | Where-Object {
-          $_.Path -like "*Frontend.Web.dll*"
-        }
-        if ($p) {
-          Write-Host "Stopping Frontend..."
-          $p | Stop-Process -Force
+        $conn = netstat -ano | findstr :5001
+        if ($conn) {
+          $pid = ($conn -split '\s+')[-1]
+          Write-Host "Stopping frontend PID=$pid"
+          taskkill /PID $pid /F
+        } else {
+          Write-Host "Frontend not running"
         }
 
     - name: Copy Frontend DLLs
@@ -76,4 +81,5 @@ jobs:
     - name: Start Frontend
       shell: powershell
       run: |
-        Start-Process "dotnet" "C:\apps\data-management\frontend\Frontend.Web.dll --urls=http://localhost:5001"
+        Start-Process "dotnet" `
+          "C:\apps\data-management\frontend\Frontend.Web.dll --urls=http://localhost:5001"
