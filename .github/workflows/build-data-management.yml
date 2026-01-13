@@ -40,23 +40,32 @@ jobs:
     - name: Stop Backend (port 5000)
       shell: powershell
       run: |
-        $conns = netstat -ano | findstr :5000
+        $ErrorActionPreference = "Continue"
+
+        $conns = netstat -ano | Select-String ":5000"
         if ($conns) {
-          $pids = $conns | ForEach-Object { ($_ -split '\s+')[-1] } | Sort-Object -Unique
+          $pids = $conns | ForEach-Object {
+            ($_ -split '\s+')[-1]
+          } | Sort-Object -Unique
+
           foreach ($processId in $pids) {
             Write-Host "Stopping backend PID=$processId"
-            taskkill /PID $processId /F
+            taskkill /PID $processId /F | Out-Null
           }
         } else {
           Write-Host "Backend not running"
         }
 
+        # Wait until port is free (without failing the step)
         $timeout = 10
-        while ((netstat -ano | findstr :5000) -and $timeout -gt 0) {
+        while ((netstat -ano | Select-String ":5000") -and $timeout -gt 0) {
           Write-Host "Waiting for port 5000 to be released..."
           Start-Sleep -Seconds 1
           $timeout--
         }
+
+        Write-Host "Backend stop completed"
+
 
     - name: Copy Backend DLLs
       shell: powershell
@@ -75,23 +84,31 @@ jobs:
     - name: Stop Frontend (port 5001)
       shell: powershell
       run: |
-        $conns = netstat -ano | findstr :5001
+        $ErrorActionPreference = "Continue"
+
+        $conns = netstat -ano | Select-String ":5001"
         if ($conns) {
-          $pids = $conns | ForEach-Object { ($_ -split '\s+')[-1] } | Sort-Object -Unique
+          $pids = $conns | ForEach-Object {
+            ($_ -split '\s+')[-1]
+          } | Sort-Object -Unique
+
           foreach ($processId in $pids) {
             Write-Host "Stopping frontend PID=$processId"
-            taskkill /PID $processId /F
+            taskkill /PID $processId /F | Out-Null
           }
         } else {
           Write-Host "Frontend not running"
         }
 
         $timeout = 10
-        while ((netstat -ano | findstr :5001) -and $timeout -gt 0) {
+        while ((netstat -ano | Select-String ":5001") -and $timeout -gt 0) {
           Write-Host "Waiting for port 5001 to be released..."
           Start-Sleep -Seconds 1
           $timeout--
         }
+
+        Write-Host "Frontend stop completed"
+
 
     - name: Copy Frontend DLLs
       shell: powershell
