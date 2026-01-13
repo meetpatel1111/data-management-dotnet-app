@@ -1,0 +1,43 @@
+name: Build Data Management App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore
+      run: dotnet restore
+
+    - name: Build Backend
+      run: dotnet build Backend.Api/Backend.Api.csproj -c Release
+
+    - name: Build Frontend
+      run: dotnet build Frontend.Web/Frontend.Web.csproj -c Release
+
+    - name: Ensure deployment folders exist
+      shell: powershell
+      run: |
+        New-Item -ItemType Directory -Path C:\apps\data-management\backend -Force
+        New-Item -ItemType Directory -Path C:\apps\data-management\frontend -Force
+
+    - name: Copy Backend DLLs
+      shell: powershell
+      run: |
+        Copy-Item Backend.Api\bin\Release\net8.0\* C:\apps\data-management\backend -Recurse -Force
+
+    - name: Copy Frontend DLLs
+      shell: powershell
+      run: |
+        Copy-Item Frontend.Web\bin\Release\net8.0\* C:\apps\data-management\frontend -Recurse -Force
