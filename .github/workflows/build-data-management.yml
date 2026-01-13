@@ -42,12 +42,13 @@ jobs:
       run: |
         $conn = netstat -ano | findstr :5000
         if ($conn) {
-          $pid = ($conn -split '\s+')[-1]
-          Write-Host "Stopping backend PID=$pid"
-          taskkill /PID $pid /F
+          $processId = ($conn -split '\s+')[-1]
+          Write-Host "Stopping backend processId=$processId"
+          taskkill /PID $processId /F
         } else {
           Write-Host "Backend not running"
         }
+
 
     - name: Copy Backend DLLs
       shell: powershell
@@ -66,12 +67,13 @@ jobs:
       run: |
         $conn = netstat -ano | findstr :5001
         if ($conn) {
-          $pid = ($conn -split '\s+')[-1]
-          Write-Host "Stopping frontend PID=$pid"
-          taskkill /PID $pid /F
+          $processId = ($conn -split '\s+')[-1]
+          Write-Host "Stopping frontend processId=$processId"
+          taskkill /PID $processId /F
         } else {
           Write-Host "Frontend not running"
         }
+
 
     - name: Copy Frontend DLLs
       shell: powershell
