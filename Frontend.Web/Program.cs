@@ -12,6 +12,9 @@ var app = builder.Build();
 app.UseStaticFiles();
 app.UseRouting();
 
-app.MapDefaultControllerRoute();
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Items}/{action=Index}/{id?}"
+);
 
 app.Run();
