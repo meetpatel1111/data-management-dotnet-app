@@ -13,8 +13,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Restore
-      run: dotnet restore
+    - name: Restore Backend
+      run: dotnet restore Backend.Api/Backend.Api.csproj
+
+    - name: Restore Frontend
+      run: dotnet restore Frontend.Web/Frontend.Web.csproj
 
     - name: Build Backend
       run: dotnet build Backend.Api/Backend.Api.csproj -c Release
