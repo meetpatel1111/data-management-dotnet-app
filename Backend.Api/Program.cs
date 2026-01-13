@@ -1,4 +1,3 @@
-using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
@@ -9,6 +8,9 @@ var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
+
+// ✅ Root redirect
+app.MapGet("/", () => Results.Redirect("/swagger"));
 
 app.MapGet("/api/items", (DataStore store) => store.GetAll());
 app.MapGet("/api/items/{id:int}", (int id, DataStore store) =>
@@ -40,13 +42,9 @@ class DataStore
     private int _id = 1;
 
     public IEnumerable<Item> GetAll() => _items;
-
     public Item? Get(int id) => _items.FirstOrDefault(x => x.Id == id);
 
-    public void Add(Item item)
-    {
-        _items.Add(item with { Id = _id++ });
-    }
+    public void Add(Item item) => _items.Add(item with { Id = _id++ });
 
     public bool Update(int id, Item updated)
     {
