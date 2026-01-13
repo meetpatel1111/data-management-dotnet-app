@@ -1,6 +1,7 @@
 name: Build Data Management App
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
